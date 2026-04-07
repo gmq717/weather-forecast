@@ -119,21 +119,46 @@ class WeatherApp {
         this.hideError();
 
         try {
-            // 首先尝试从中国城市数据库查找（更准确）
+            // 首先尝试从中国城市数据库查找（更准确且无需网络请求）
             const chinaCity = this.getChinaCityCoord(city);
             if (chinaCity) {
+                console.log(`从本地数据库找到城市: ${city}`, chinaCity);
                 await this.fetchWeatherByCoords(chinaCity.lat, chinaCity.lon, city, '中国');
                 return;
             }
 
-            // 如果数据库中没有，使用 Open-Meteo Geocoding API
+            // 如果本地数据库没有，尝试调用 API
+            console.log(`本地数据库未找到 ${city}，尝试 API 搜索...`);
+            await this.searchCityByAPI(city);
+
+        } catch (error) {
+            console.error('搜索城市时出错:', error);
+            this.hideLoading();
+            this.showError(error.message || '查询失败，请检查网络连接或稍后重试');
+        }
+    }
+
+    // 通过 API 搜索城市
+    async searchCityByAPI(city) {
+        // 使用 Open-Meteo Geocoding API，添加超时处理
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+
+        try {
             const response = await fetch(
-                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=5&language=zh&format=json`
+                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=5&language=zh&format=json`,
+                { signal: controller.signal }
             );
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`网络请求失败: ${response.status}`);
+            }
+
             const data = await response.json();
 
             if (!data.results || data.results.length === 0) {
-                throw new Error('未找到该城市，请检查城市名称');
+                throw new Error('未找到该城市，请检查城市名称或尝试输入省份+城市（如：安徽合肥）');
             }
 
             // 优先选择中国的城市
@@ -144,8 +169,10 @@ class WeatherApp {
             await this.fetchWeatherByCoords(latitude, longitude, name, country);
 
         } catch (error) {
-            this.hideLoading();
-            this.showError(error.message || '查询失败，请稍后重试');
+            if (error.name === 'AbortError') {
+                throw new Error('请求超时，请检查网络连接或稍后重试');
+            }
+            throw error;
         }
     }
 
