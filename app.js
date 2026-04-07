@@ -295,7 +295,8 @@ class WeatherApp {
         document.getElementById('temp').textContent = now.temp;
         document.getElementById('humidity').textContent = `${now.humidity}%`;
         document.getElementById('windSpeed').textContent = `${now.windSpeed} km/h`;
-        document.getElementById('visibility').textContent = now.vis ? `${(now.vis / 1000).toFixed(1)} km` : '-';
+        // 和风天气返回的vis单位已经是公里，无需除以1000
+        document.getElementById('visibility').textContent = now.vis ? `${now.vis} km` : '-';
         document.getElementById('feelsLike').textContent = `${now.feelsLike}°C`;
 
         // 天气描述和图标（使用emoji，无需外部资源）
