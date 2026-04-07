@@ -251,10 +251,11 @@ class WeatherApp {
             const data = await response.json();
             console.log('空气质量返回数据:', data);
 
-            if (data.code === '200' && data.now) {
-                this.displayAirQuality(data.now);
+            // 适配新的API返回结构
+            if (data.indexes && data.indexes.length > 0) {
+                this.displayAirQuality(data);
             } else {
-                console.log('空气质量数据为空或返回错误:', data.code);
+                console.log('空气质量数据为空');
                 this.displayAirQuality(null);
             }
         } catch (e) {
@@ -459,7 +460,7 @@ class WeatherApp {
 
     // 显示空气质量
     displayAirQuality(aqiData) {
-        if (!aqiData) {
+        if (!aqiData || !aqiData.indexes || aqiData.indexes.length === 0) {
             document.getElementById('aqi').textContent = '--';
             document.getElementById('aqiLevel').textContent = '暂无数据';
             document.getElementById('aqiLevel').style.color = '#999';
@@ -467,31 +468,26 @@ class WeatherApp {
             document.getElementById('pm10').textContent = '-- μg/m³';
             document.getElementById('o3').textContent = '-- μg/m³';
             document.getElementById('no2').textContent = '-- μg/m³';
+            document.getElementById('so2').textContent = '-- μg/m³';
+            document.getElementById('co').textContent = '-- mg/m³';
         } else {
-            document.getElementById('aqi').textContent = aqiData.aqi;
+            const aqiIndex = aqiData.indexes[0];
+            document.getElementById('aqi').textContent = aqiIndex.aqi;
+            document.getElementById('aqiLevel').textContent = aqiIndex.category;
+            document.getElementById('aqiLevel').style.color = `rgb(${aqiIndex.color.red}, ${aqiIndex.color.green}, ${aqiIndex.color.blue})`;
 
-            // AQI等级映射
-            const aqiLevels = [
-                { min: 0, max: 50, level: '优', color: '#00e400' },
-                { min: 51, max: 100, level: '良', color: '#ffff00' },
-                { min: 101, max: 150, level: '轻度污染', color: '#ff7e00' },
-                { min: 151, max: 200, level: '中度污染', color: '#ff0000' },
-                { min: 201, max: 300, level: '重度污染', color: '#99004c' },
-                { min: 301, max: 500, level: '严重污染', color: '#7e0023' }
-            ];
+            // 提取污染物数据
+            const pollutants = {};
+            aqiData.pollutants.forEach(p => {
+                pollutants[p.code] = p.concentration.value;
+            });
 
-            const aqiValue = parseInt(aqiData.aqi);
-            const levelInfo = aqiLevels.find(level => aqiValue >= level.min && aqiValue <= level.max) ||
-                              { level: '未知', color: '#999' };
-
-            const aqiLevelElement = document.getElementById('aqiLevel');
-            aqiLevelElement.textContent = levelInfo.level;
-            aqiLevelElement.style.color = levelInfo.color;
-
-            document.getElementById('pm2p5').textContent = `${aqiData.pm2p5 || '--'} μg/m³`;
-            document.getElementById('pm10').textContent = `${aqiData.pm10 || '--'} μg/m³`;
-            document.getElementById('o3').textContent = `${aqiData.o3 || '--'} μg/m³`;
-            document.getElementById('no2').textContent = `${aqiData.no2 || '--'} μg/m³`;
+            document.getElementById('pm2p5').textContent = `${pollutants.pm2p5 || '--'} μg/m³`;
+            document.getElementById('pm10').textContent = `${pollutants.pm10 || '--'} μg/m³`;
+            document.getElementById('o3').textContent = `${pollutants.o3 || '--'} μg/m³`;
+            document.getElementById('no2').textContent = `${pollutants.no2 || '--'} μg/m³`;
+            document.getElementById('so2').textContent = `${pollutants.so2 || '--'} μg/m³`;
+            document.getElementById('co').textContent = `${pollutants.co || '--'} mg/m³`;
         }
 
         this.airQuality.classList.remove('hidden');
