@@ -132,18 +132,22 @@ class WeatherApp {
     // 根据坐标获取城市名
     async getCityNameByCoords(lat, lon) {
         try {
-            // 使用 Open-Meteo 的反向地理编码 API
+            // 使用 BigDataCloud 免费反向地理编码 API（无需API Key，有免费额度）
             const response = await fetch(
-                `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=zh`
+                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh`
             );
             const data = await response.json();
-            if (data.results && data.results.length > 0) {
-                return data.results[0].name || '当前位置';
+            if (data.city) {
+                return data.city;
+            } else if (data.locality) {
+                return data.locality;
             }
-            return '当前位置';
-        } catch {
-            return '当前位置';
+        } catch (e) {
+            console.log('反向地理编码失败:', e);
         }
+
+        // 备用：直接使用经纬度作为位置名称
+        return `当前位置 (${lat.toFixed(2)}, ${lon.toFixed(2)})`;
     }
 
     // 显示天气数据
