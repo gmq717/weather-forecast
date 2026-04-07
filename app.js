@@ -9,6 +9,7 @@ class WeatherApp {
     constructor() {
         this.initElements();
         this.bindEvents();
+        this.autoLocate(); // 页面加载自动定位
     }
 
     // 初始化DOM元素
@@ -31,6 +32,23 @@ class WeatherApp {
         this.cityInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.searchCity();
         });
+    }
+
+    // 页面加载自动定位（静默失败）
+    autoLocate() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    this.fetchWeatherByCoords(latitude, longitude, '当前位置');
+                },
+                () => {
+                    // 自动定位失败不显示错误，让用户手动搜索
+                    console.log('自动定位失败，等待用户手动操作');
+                },
+                { timeout: 3000 }
+            );
+        }
     }
 
     // 获取当前位置
@@ -79,16 +97,23 @@ class WeatherApp {
         this.hideError();
 
         try {
-            // 使用和风天气 GeoAPI 搜索城市
-            const url = `${QWEATHER_BASE_URL}/geo/v2/city/lookup?location=${encodeURIComponent(city)}&lang=zh`;
+            // 使用和风天气 GeoAPI 搜索城市，支持城市名称和城市代码
+            const locationParam = /^\d+$/.test(city) ? city : encodeURIComponent(city);
+            const url = `${QWEATHER_BASE_URL}/geo/v2/city/lookup?location=${locationParam}&lang=zh&number=1`;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
 
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'X-QW-Api-Key': QWEATHER_API_KEY,
                     'Accept-Encoding': 'gzip, deflate'
-                }
+                },
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error(`API请求失败: ${response.status}`);
@@ -107,6 +132,10 @@ class WeatherApp {
 
             // 获取天气数据
             await this.fetchWeatherByCoords(parseFloat(lat), parseFloat(lon), displayName, country);
+
+            // 搜索成功后清空输入框并失焦
+            this.cityInput.value = '';
+            this.cityInput.blur();
 
         } catch (error) {
             console.error('搜索城市时出错:', error);
@@ -144,6 +173,8 @@ class WeatherApp {
 
             // 显示天气数据
             this.displayWeather(data.now, cityName, country);
+            // 设置动态背景色
+            this.updateBackground(data.now.icon);
 
             this.hideLoading();
             this.showWeatherCard();
@@ -288,6 +319,80 @@ class WeatherApp {
         });
 
         this.forecast.classList.remove('hidden');
+    }
+
+    // 根据天气图标更新背景色
+    updateBackground(iconCode) {
+        const body = document.body;
+        const gradients = {
+            // 晴天 (蓝色渐变)
+            '100': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            '150': 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)', // 夜晚
+            // 多云 (蓝紫渐变)
+            '101': 'linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)',
+            '102': 'linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)',
+            '103': 'linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)',
+            '153': 'linear-gradient(135deg, #2d3436 0%, #636e72 100%)', // 夜晚多云
+            // 阴天 (灰蓝渐变)
+            '104': 'linear-gradient(135deg, #636e72 0%, #b2bec3 100%)',
+            // 雨天 (深灰蓝渐变)
+            '300': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '301': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '302': 'linear-gradient(135deg, #1e3799 0%, #3c6382 100%)',
+            '303': 'linear-gradient(135deg, #1e3799 0%, #3c6382 100%)',
+            '304': 'linear-gradient(135deg, #1e3799 0%, #3c6382 100%)',
+            '305': 'linear-gradient(135deg, #1e3799 0%, #3c6382 100%)',
+            '306': 'linear-gradient(135deg, #1e3799 0%, #3c6382 100%)',
+            '307': 'linear-gradient(135deg, #1e3799 0%, #3c6382 100%)',
+            '308': 'linear-gradient(135deg, #1e3799 0%, #3c6382 100%)',
+            '309': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '310': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '311': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '312': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '313': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '314': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '315': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '316': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '317': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '318': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '350': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '351': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            '399': 'linear-gradient(135deg, #4a69bd 0%, #6a89cc 100%)',
+            // 雪天 (浅蓝白渐变)
+            '400': 'linear-gradient(135deg, #81ecec 0%, #74b9ff 100%)',
+            '401': 'linear-gradient(135deg, #81ecec 0%, #74b9ff 100%)',
+            '402': 'linear-gradient(135deg, #81ecec 0%, #74b9ff 100%)',
+            '403': 'linear-gradient(135deg, #81ecec 0%, #74b9ff 100%)',
+            '404': 'linear-gradient(135deg, #81ecec 0%, #74b9ff 100%)',
+            '405': 'linear-gradient(135deg, #81ecec 0%, #74b9ff 100%)',
+            '406': 'linear-gradient(135deg, #81ecec 0%, #74b9ff 100%)',
+            '407': 'linear-gradient(135deg, #81ecec 0%, #74b9ff 100%)',
+            '408': 'linear-gradient(135deg, #81ecec 0%, #74b9ff 100%)',
+            '409': 'linear-gradient(135deg, #81ecec 0%, #74b9ff 100%)',
+            '410': 'linear-gradient(135deg, #81ecec 0%, #74b9ff 100%)',
+            '499': 'linear-gradient(135deg, #81ecec 0%, #74b9ff 100%)',
+            // 雾霾 (灰黄渐变)
+            '500': 'linear-gradient(135deg, #dfe6e9 0%, #b2bec3 100%)',
+            '501': 'linear-gradient(135deg, #dfe6e9 0%, #b2bec3 100%)',
+            '502': 'linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)',
+            '503': 'linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)',
+            '504': 'linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)',
+            '507': 'linear-gradient(135deg, #2d3436 0%, #636e72 100%)',
+            '508': 'linear-gradient(135deg, #2d3436 0%, #636e72 100%)',
+            '509': 'linear-gradient(135deg, #dfe6e9 0%, #b2bec3 100%)',
+            '510': 'linear-gradient(135deg, #dfe6e9 0%, #b2bec3 100%)',
+            '511': 'linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)',
+            '512': 'linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)',
+            '513': 'linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)',
+            '514': 'linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)',
+            '515': 'linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)',
+            '599': 'linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)'
+        };
+
+        const defaultGradient = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        body.style.background = gradients[iconCode] || defaultGradient;
+        body.style.backgroundAttachment = 'fixed';
+        body.style.minHeight = '100vh';
     }
 
     // 显示/隐藏控制
