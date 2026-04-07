@@ -63,6 +63,50 @@ class WeatherApp {
         );
     }
 
+    // 中国主要城市坐标数据库（用于提高搜索准确性）
+    getChinaCityCoord(cityName) {
+        const cityDB = {
+            '北京': { lat: 39.9042, lon: 116.4074 },
+            '上海': { lat: 31.2304, lon: 121.4737 },
+            '广州': { lat: 23.1291, lon: 113.2644 },
+            '深圳': { lat: 22.5431, lon: 114.0579 },
+            '杭州': { lat: 30.2741, lon: 120.1551 },
+            '南京': { lat: 32.0603, lon: 118.7969 },
+            '成都': { lat: 30.5728, lon: 104.0668 },
+            '重庆': { lat: 29.5630, lon: 106.5516 },
+            '武汉': { lat: 30.5928, lon: 114.3055 },
+            '西安': { lat: 34.3416, lon: 108.9398 },
+            '苏州': { lat: 31.2989, lon: 120.5853 },
+            '天津': { lat: 39.0842, lon: 117.2009 },
+            '长沙': { lat: 28.2282, lon: 112.9388 },
+            '郑州': { lat: 34.7466, lon: 113.6253 },
+            '沈阳': { lat: 41.8057, lon: 123.4315 },
+            '青岛': { lat: 36.0671, lon: 120.3826 },
+            '宁波': { lat: 29.8683, lon: 121.5440 },
+            '合肥': { lat: 31.8206, lon: 117.2272 },
+            '佛山': { lat: 23.0218, lon: 113.1219 },
+            '东莞': { lat: 23.0470, lon: 113.7490 },
+            '昆明': { lat: 25.0389, lon: 102.7183 },
+            '福州': { lat: 26.0745, lon: 119.2965 },
+            '厦门': { lat: 24.4798, lon: 118.0894 },
+            '哈尔滨': { lat: 45.8038, lon: 126.5349 },
+            '长春': { lat: 43.8171, lon: 125.3235 },
+            '石家庄': { lat: 38.0428, lon: 114.5149 },
+            '南昌': { lat: 28.6820, lon: 115.8579 },
+            '贵阳': { lat: 26.6470, lon: 106.6302 },
+            '兰州': { lat: 36.0611, lon: 103.8343 },
+            '海口': { lat: 20.0440, lon: 110.1999 },
+            '乌鲁木齐': { lat: 43.8256, lon: 87.6168 },
+            '拉萨': { lat: 29.6500, lon: 91.1000 },
+            '银川': { lat: 38.4872, lon: 106.2309 },
+            '西宁': { lat: 36.6171, lon: 101.7782 }
+        };
+
+        // 尝试匹配城市名（支持不带"市"后缀）
+        const normalizedName = cityName.replace(/市$/, '');
+        return cityDB[normalizedName] || cityDB[cityName] || null;
+    }
+
     // 搜索城市
     async searchCity() {
         const city = this.cityInput.value.trim();
@@ -75,9 +119,16 @@ class WeatherApp {
         this.hideError();
 
         try {
-            // 使用 Open-Meteo Geocoding API 获取城市坐标
+            // 首先尝试从中国城市数据库查找（更准确）
+            const chinaCity = this.getChinaCityCoord(city);
+            if (chinaCity) {
+                await this.fetchWeatherByCoords(chinaCity.lat, chinaCity.lon, city, '中国');
+                return;
+            }
+
+            // 如果数据库中没有，使用 Open-Meteo Geocoding API
             const response = await fetch(
-                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`
+                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=5&language=zh&format=json`
             );
             const data = await response.json();
 
@@ -85,7 +136,8 @@ class WeatherApp {
                 throw new Error('未找到该城市，请检查城市名称');
             }
 
-            const result = data.results[0];
+            // 优先选择中国的城市
+            const result = data.results.find(r => r.country === 'China' || r.country === '中国') || data.results[0];
             const { latitude, longitude, name, country } = result;
 
             // 获取天气数据
