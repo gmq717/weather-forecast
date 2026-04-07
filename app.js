@@ -1,5 +1,9 @@
 // 天气应用主逻辑
-// 使用 Open-Meteo API (免费，无需API Key)
+// 使用和风天气商业版 API (通过 Header 传递 API Key)
+
+// API 配置
+const QWEATHER_API_KEY = '200463910e3740179a69e5467a497a47';
+const QWEATHER_BASE_URL = 'https://nm4wcv3wv5.re.qweatherapi.com';
 
 class WeatherApp {
     constructor() {
@@ -42,7 +46,7 @@ class WeatherApp {
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const { latitude, longitude } = position.coords;
-                this.fetchWeatherByCoords(latitude, longitude);
+                this.fetchWeatherByCoords(latitude, longitude, '当前位置');
             },
             (error) => {
                 this.hideLoading();
@@ -63,50 +67,6 @@ class WeatherApp {
         );
     }
 
-    // 中国主要城市坐标数据库（用于提高搜索准确性）
-    getChinaCityCoord(cityName) {
-        const cityDB = {
-            '北京': { lat: 39.9042, lon: 116.4074 },
-            '上海': { lat: 31.2304, lon: 121.4737 },
-            '广州': { lat: 23.1291, lon: 113.2644 },
-            '深圳': { lat: 22.5431, lon: 114.0579 },
-            '杭州': { lat: 30.2741, lon: 120.1551 },
-            '南京': { lat: 32.0603, lon: 118.7969 },
-            '成都': { lat: 30.5728, lon: 104.0668 },
-            '重庆': { lat: 29.5630, lon: 106.5516 },
-            '武汉': { lat: 30.5928, lon: 114.3055 },
-            '西安': { lat: 34.3416, lon: 108.9398 },
-            '苏州': { lat: 31.2989, lon: 120.5853 },
-            '天津': { lat: 39.0842, lon: 117.2009 },
-            '长沙': { lat: 28.2282, lon: 112.9388 },
-            '郑州': { lat: 34.7466, lon: 113.6253 },
-            '沈阳': { lat: 41.8057, lon: 123.4315 },
-            '青岛': { lat: 36.0671, lon: 120.3826 },
-            '宁波': { lat: 29.8683, lon: 121.5440 },
-            '合肥': { lat: 31.8206, lon: 117.2272 },
-            '佛山': { lat: 23.0218, lon: 113.1219 },
-            '东莞': { lat: 23.0470, lon: 113.7490 },
-            '昆明': { lat: 25.0389, lon: 102.7183 },
-            '福州': { lat: 26.0745, lon: 119.2965 },
-            '厦门': { lat: 24.4798, lon: 118.0894 },
-            '哈尔滨': { lat: 45.8038, lon: 126.5349 },
-            '长春': { lat: 43.8171, lon: 125.3235 },
-            '石家庄': { lat: 38.0428, lon: 114.5149 },
-            '南昌': { lat: 28.6820, lon: 115.8579 },
-            '贵阳': { lat: 26.6470, lon: 106.6302 },
-            '兰州': { lat: 36.0611, lon: 103.8343 },
-            '海口': { lat: 20.0440, lon: 110.1999 },
-            '乌鲁木齐': { lat: 43.8256, lon: 87.6168 },
-            '拉萨': { lat: 29.6500, lon: 91.1000 },
-            '银川': { lat: 38.4872, lon: 106.2309 },
-            '西宁': { lat: 36.6171, lon: 101.7782 }
-        };
-
-        // 尝试匹配城市名（支持不带"市"后缀）
-        const normalizedName = cityName.replace(/市$/, '');
-        return cityDB[normalizedName] || cityDB[cityName] || null;
-    }
-
     // 搜索城市
     async searchCity() {
         const city = this.cityInput.value.trim();
@@ -119,17 +79,34 @@ class WeatherApp {
         this.hideError();
 
         try {
-            // 首先尝试从中国城市数据库查找（更准确且无需网络请求）
-            const chinaCity = this.getChinaCityCoord(city);
-            if (chinaCity) {
-                console.log(`从本地数据库找到城市: ${city}`, chinaCity);
-                await this.fetchWeatherByCoords(chinaCity.lat, chinaCity.lon, city, '中国');
-                return;
+            // 使用和风天气 GeoAPI 搜索城市
+            const url = `${QWEATHER_BASE_URL}/geo/v2/city/lookup?location=${encodeURIComponent(city)}&lang=zh`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-QW-Api-Key': QWEATHER_API_KEY,
+                    'Accept-Encoding': 'gzip, deflate'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`API请求失败: ${response.status}`);
             }
 
-            // 如果本地数据库没有，尝试调用 API
-            console.log(`本地数据库未找到 ${city}，尝试 API 搜索...`);
-            await this.searchCityByAPI(city);
+            const data = await response.json();
+
+            if (data.code !== '200' || !data.location || data.location.length === 0) {
+                throw new Error('未找到该城市，请检查城市名称');
+            }
+
+            // 获取第一个匹配的城市
+            const location = data.location[0];
+            const { lat, lon, name, adm1, country } = location;
+            const displayName = adm1 && adm1 !== name ? `${adm1} ${name}` : name;
+
+            // 获取天气数据
+            await this.fetchWeatherByCoords(parseFloat(lat), parseFloat(lon), displayName, country);
 
         } catch (error) {
             console.error('搜索城市时出错:', error);
@@ -138,113 +115,84 @@ class WeatherApp {
         }
     }
 
-    // 通过 API 搜索城市
-    async searchCityByAPI(city) {
-        // 使用 Open-Meteo Geocoding API，添加超时处理
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
-
-        try {
-            const response = await fetch(
-                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=5&language=zh&format=json`,
-                { signal: controller.signal }
-            );
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                throw new Error(`网络请求失败: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (!data.results || data.results.length === 0) {
-                throw new Error('未找到该城市，请检查城市名称或尝试输入省份+城市（如：安徽合肥）');
-            }
-
-            // 优先选择中国的城市
-            const result = data.results.find(r => r.country === 'China' || r.country === '中国') || data.results[0];
-            const { latitude, longitude, name, country } = result;
-
-            // 获取天气数据
-            await this.fetchWeatherByCoords(latitude, longitude, name, country);
-
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                throw new Error('请求超时，请检查网络连接或稍后重试');
-            }
-            throw error;
-        }
-    }
-
     // 根据坐标获取天气
-    async fetchWeatherByCoords(lat, lon, cityName = null, country = null) {
+    async fetchWeatherByCoords(lat, lon, cityName, country = '') {
         try {
-            // 获取当前天气和预报
-            const response = await fetch(
-                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,visibility&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4`
-            );
+            // 使用和风天气实时天气 API
+            const url = `${QWEATHER_BASE_URL}/v7/weather/now?location=${lon},${lat}&lang=zh`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-QW-Api-Key': QWEATHER_API_KEY,
+                    'Accept-Encoding': 'gzip, deflate'
+                }
+            });
 
             if (!response.ok) {
-                throw new Error('获取天气数据失败');
+                throw new Error(`天气API请求失败: ${response.status}`);
             }
 
             const data = await response.json();
 
-            // 如果提供了城市名，使用提供的；否则需要通过反向地理编码获取
-            let displayName = cityName;
-            if (!displayName) {
-                displayName = await this.getCityNameByCoords(lat, lon);
+            if (data.code !== '200') {
+                throw new Error(`获取天气失败: ${data.message || '未知错误'}`);
             }
 
-            this.displayWeather(data, displayName, country);
-            this.displayForecast(data.daily);
+            // 获取预报数据
+            await this.fetchForecast(lat, lon);
+
+            // 显示天气数据
+            this.displayWeather(data.now, cityName, country);
 
             this.hideLoading();
             this.showWeatherCard();
 
         } catch (error) {
+            console.error('获取天气时出错:', error);
             this.hideLoading();
-            this.showError(error.message || '获取天气失败');
+            this.showError(error.message || '获取天气失败，请稍后重试');
         }
     }
 
-    // 根据坐标获取城市名
-    async getCityNameByCoords(lat, lon) {
+    // 获取天气预报
+    async fetchForecast(lat, lon) {
         try {
-            // 使用 BigDataCloud 免费反向地理编码 API（无需API Key，有免费额度）
-            const response = await fetch(
-                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh`
-            );
+            const url = `${QWEATHER_BASE_URL}/v7/weather/3d?location=${lon},${lat}&lang=zh`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-QW-Api-Key': QWEATHER_API_KEY,
+                    'Accept-Encoding': 'gzip, deflate'
+                }
+            });
+
+            if (!response.ok) return;
+
             const data = await response.json();
-            if (data.city) {
-                return data.city;
-            } else if (data.locality) {
-                return data.locality;
+
+            if (data.code === '200' && data.daily) {
+                this.displayForecast(data.daily);
             }
         } catch (e) {
-            console.log('反向地理编码失败:', e);
+            console.log('获取预报失败:', e);
         }
-
-        // 备用：直接使用经纬度作为位置名称
-        return `当前位置 (${lat.toFixed(2)}, ${lon.toFixed(2)})`;
     }
 
     // 显示天气数据
-    displayWeather(data, cityName, country) {
-        const current = data.current;
-
+    displayWeather(now, cityName, country) {
         document.getElementById('cityName').textContent = cityName + (country ? `, ${country}` : '');
         document.getElementById('updateTime').textContent = `更新时间：${new Date().toLocaleString('zh-CN')}`;
-        document.getElementById('temp').textContent = Math.round(current.temperature_2m);
-        document.getElementById('humidity').textContent = `${current.relative_humidity_2m}%`;
-        document.getElementById('windSpeed').textContent = `${current.wind_speed_10m} km/h`;
-        document.getElementById('visibility').textContent = `${(current.visibility / 1000).toFixed(1)} km`;
-        document.getElementById('feelsLike').textContent = `${Math.round(current.apparent_temperature)}°C`;
+        document.getElementById('temp').textContent = now.temp;
+        document.getElementById('humidity').textContent = `${now.humidity}%`;
+        document.getElementById('windSpeed').textContent = `${now.windSpeed} km/h`;
+        document.getElementById('visibility').textContent = now.vis ? `${(now.vis / 1000).toFixed(1)} km` : '-';
+        document.getElementById('feelsLike').textContent = `${now.feelsLike}°C`;
 
         // 天气描述和图标
-        const weatherInfo = this.getWeatherInfo(current.weather_code);
-        document.getElementById('weatherDesc').textContent = weatherInfo.desc;
-        document.getElementById('weatherIcon').src = weatherInfo.icon;
+        document.getElementById('weatherDesc').textContent = now.text || '-';
+        document.getElementById('weatherIcon').src = `https://a.hecdn.net/img/common/icon/${now.icon}.png`;
     }
 
     // 显示未来预报
@@ -252,53 +200,21 @@ class WeatherApp {
         const forecastList = document.getElementById('forecastList');
         forecastList.innerHTML = '';
 
-        // 显示接下来3天（跳过今天）
-        for (let i = 1; i <= 3; i++) {
-            const date = new Date(daily.time[i]);
-            const weatherInfo = this.getWeatherInfo(daily.weather_code[i]);
-            const maxTemp = Math.round(daily.temperature_2m_max[i]);
-            const minTemp = Math.round(daily.temperature_2m_min[i]);
+        // 显示3天预报
+        daily.forEach((day) => {
+            const date = new Date(day.fxDate);
 
             const item = document.createElement('div');
             item.className = 'forecast-item';
             item.innerHTML = `
                 <p class="date">${date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', weekday: 'short' })}</p>
-                <img class="icon" src="${weatherInfo.icon}" alt="${weatherInfo.desc}">
-                <p class="temp-range">${maxTemp}° / ${minTemp}°</p>
+                <img class="icon" src="https://a.hecdn.net/img/common/icon/${day.iconDay}.png" alt="${day.textDay}">
+                <p class="temp-range">${day.tempMax}° / ${day.tempMin}°</p>
             `;
             forecastList.appendChild(item);
-        }
+        });
 
         this.forecast.classList.remove('hidden');
-    }
-
-    // 获取天气图标和描述 (WMO Weather interpretation codes)
-    getWeatherInfo(code) {
-        const weatherMap = {
-            0: { desc: '晴朗', icon: 'https://cdn-icons-png.flaticon.com/128/869/869869.png' },
-            1: { desc: ' mainly clear', icon: 'https://cdn-icons-png.flaticon.com/128/1163/1163661.png' },
-            2: { desc: '多云', icon: 'https://cdn-icons-png.flaticon.com/128/1163/1163661.png' },
-            3: { desc: '阴天', icon: 'https://cdn-icons-png.flaticon.com/128/414/414927.png' },
-            45: { desc: '雾', icon: 'https://cdn-icons-png.flaticon.com/128/4151/4151022.png' },
-            48: { desc: '雾凇', icon: 'https://cdn-icons-png.flaticon.com/128/4151/4151022.png' },
-            51: { desc: '毛毛雨', icon: 'https://cdn-icons-png.flaticon.com/128/414/414974.png' },
-            53: { desc: '小雨', icon: 'https://cdn-icons-png.flaticon.com/128/414/414974.png' },
-            55: { desc: '中雨', icon: 'https://cdn-icons-png.flaticon.com/128/414/414974.png' },
-            61: { desc: '小雨', icon: 'https://cdn-icons-png.flaticon.com/128/1163/1163627.png' },
-            63: { desc: '中雨', icon: 'https://cdn-icons-png.flaticon.com/128/1163/1163627.png' },
-            65: { desc: '大雨', icon: 'https://cdn-icons-png.flaticon.com/128/1163/1163627.png' },
-            71: { desc: '小雪', icon: 'https://cdn-icons-png.flaticon.com/128/642/642102.png' },
-            73: { desc: '中雪', icon: 'https://cdn-icons-png.flaticon.com/128/642/642102.png' },
-            75: { desc: '大雪', icon: 'https://cdn-icons-png.flaticon.com/128/642/642102.png' },
-            80: { desc: '阵雨', icon: 'https://cdn-icons-png.flaticon.com/128/1163/1163627.png' },
-            81: { desc: '阵雨', icon: 'https://cdn-icons-png.flaticon.com/128/1163/1163627.png' },
-            82: { desc: '强阵雨', icon: 'https://cdn-icons-png.flaticon.com/128/1163/1163627.png' },
-            95: { desc: '雷雨', icon: 'https://cdn-icons-png.flaticon.com/128/1146/1146869.png' },
-            96: { desc: '雷雨伴冰雹', icon: 'https://cdn-icons-png.flaticon.com/128/1146/1146869.png' },
-            99: { desc: '强雷雨伴冰雹', icon: 'https://cdn-icons-png.flaticon.com/128/1146/1146869.png' },
-        };
-
-        return weatherMap[code] || { desc: '未知', icon: 'https://cdn-icons-png.flaticon.com/128/1163/1163661.png' };
     }
 
     // 显示/隐藏控制
