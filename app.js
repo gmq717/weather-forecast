@@ -232,6 +232,7 @@ class WeatherApp {
     async fetchAirQuality(lat, lon) {
         try {
             const url = `${QWEATHER_BASE_URL}/v7/air/now?location=${lon},${lat}&lang=zh`;
+            console.log('请求空气质量API:', url);
 
             const response = await fetch(url, {
                 method: 'GET',
@@ -241,16 +242,24 @@ class WeatherApp {
                 }
             });
 
-            if (!response.ok) return;
+            if (!response.ok) {
+                console.log('空气质量API响应错误:', response.status);
+                this.displayAirQuality(null);
+                return;
+            }
 
             const data = await response.json();
+            console.log('空气质量返回数据:', data);
 
             if (data.code === '200' && data.now) {
                 this.displayAirQuality(data.now);
+            } else {
+                console.log('空气质量数据为空或返回错误:', data.code);
+                this.displayAirQuality(null);
             }
         } catch (e) {
             console.log('获取空气质量失败:', e);
-            this.airQuality.classList.add('hidden');
+            this.displayAirQuality(null);
         }
     }
 
@@ -286,6 +295,7 @@ class WeatherApp {
     async fetchLifeIndex(lat, lon) {
         try {
             const url = `${QWEATHER_BASE_URL}/v7/indices/1d?type=1,2,3,5,6,9&location=${lon},${lat}&lang=zh`;
+            console.log('请求生活指数API:', url);
 
             const response = await fetch(url, {
                 method: 'GET',
@@ -295,16 +305,24 @@ class WeatherApp {
                 }
             });
 
-            if (!response.ok) return;
+            if (!response.ok) {
+                console.log('生活指数API响应错误:', response.status);
+                this.displayLifeIndex(null);
+                return;
+            }
 
             const data = await response.json();
+            console.log('生活指数返回数据:', data);
 
             if (data.code === '200' && data.daily && data.daily.length > 0) {
                 this.displayLifeIndex(data.daily[0]);
+            } else {
+                console.log('生活指数数据为空或返回错误:', data.code);
+                this.displayLifeIndex(null);
             }
         } catch (e) {
             console.log('获取生活指数失败:', e);
-            this.lifeIndex.classList.add('hidden');
+            this.displayLifeIndex(null);
         }
     }
 
@@ -421,30 +439,40 @@ class WeatherApp {
 
     // 显示空气质量
     displayAirQuality(aqiData) {
-        document.getElementById('aqi').textContent = aqiData.aqi;
+        if (!aqiData) {
+            document.getElementById('aqi').textContent = '--';
+            document.getElementById('aqiLevel').textContent = '暂无数据';
+            document.getElementById('aqiLevel').style.color = '#999';
+            document.getElementById('pm2p5').textContent = '-- μg/m³';
+            document.getElementById('pm10').textContent = '-- μg/m³';
+            document.getElementById('o3').textContent = '-- μg/m³';
+            document.getElementById('no2').textContent = '-- μg/m³';
+        } else {
+            document.getElementById('aqi').textContent = aqiData.aqi;
 
-        // AQI等级映射
-        const aqiLevels = [
-            { min: 0, max: 50, level: '优', color: '#00e400' },
-            { min: 51, max: 100, level: '良', color: '#ffff00' },
-            { min: 101, max: 150, level: '轻度污染', color: '#ff7e00' },
-            { min: 151, max: 200, level: '中度污染', color: '#ff0000' },
-            { min: 201, max: 300, level: '重度污染', color: '#99004c' },
-            { min: 301, max: 500, level: '严重污染', color: '#7e0023' }
-        ];
+            // AQI等级映射
+            const aqiLevels = [
+                { min: 0, max: 50, level: '优', color: '#00e400' },
+                { min: 51, max: 100, level: '良', color: '#ffff00' },
+                { min: 101, max: 150, level: '轻度污染', color: '#ff7e00' },
+                { min: 151, max: 200, level: '中度污染', color: '#ff0000' },
+                { min: 201, max: 300, level: '重度污染', color: '#99004c' },
+                { min: 301, max: 500, level: '严重污染', color: '#7e0023' }
+            ];
 
-        const aqiValue = parseInt(aqiData.aqi);
-        const levelInfo = aqiLevels.find(level => aqiValue >= level.min && aqiValue <= level.max) ||
-                          { level: '未知', color: '#999' };
+            const aqiValue = parseInt(aqiData.aqi);
+            const levelInfo = aqiLevels.find(level => aqiValue >= level.min && aqiValue <= level.max) ||
+                              { level: '未知', color: '#999' };
 
-        const aqiLevelElement = document.getElementById('aqiLevel');
-        aqiLevelElement.textContent = levelInfo.level;
-        aqiLevelElement.style.color = levelInfo.color;
+            const aqiLevelElement = document.getElementById('aqiLevel');
+            aqiLevelElement.textContent = levelInfo.level;
+            aqiLevelElement.style.color = levelInfo.color;
 
-        document.getElementById('pm2p5').textContent = `${aqiData.pm2p5} μg/m³`;
-        document.getElementById('pm10').textContent = `${aqiData.pm10} μg/m³`;
-        document.getElementById('o3').textContent = `${aqiData.o3} μg/m³`;
-        document.getElementById('no2').textContent = `${aqiData.no2} μg/m³`;
+            document.getElementById('pm2p5').textContent = `${aqiData.pm2p5 || '--'} μg/m³`;
+            document.getElementById('pm10').textContent = `${aqiData.pm10 || '--'} μg/m³`;
+            document.getElementById('o3').textContent = `${aqiData.o3 || '--'} μg/m³`;
+            document.getElementById('no2').textContent = `${aqiData.no2 || '--'} μg/m³`;
+        }
 
         this.airQuality.classList.remove('hidden');
     }
@@ -485,19 +513,33 @@ class WeatherApp {
 
         this.lifeIndexList.innerHTML = '';
 
-        indices.indices.forEach(index => {
-            const info = indexMap[index.type];
-            if (info) {
+        if (!indices || !indices.indices) {
+            // 显示暂无数据
+            Object.values(indexMap).forEach(info => {
                 const item = document.createElement('div');
                 item.className = 'life-index-item';
                 item.innerHTML = `
                     <span class="index-icon">${info.icon}</span>
                     <span class="index-name">${info.name}</span>
-                    <span class="index-level">${index.level}</span>
+                    <span class="index-level" style="color:#999">--</span>
                 `;
                 this.lifeIndexList.appendChild(item);
-            }
-        });
+            });
+        } else {
+            indices.indices.forEach(index => {
+                const info = indexMap[index.type];
+                if (info) {
+                    const item = document.createElement('div');
+                    item.className = 'life-index-item';
+                    item.innerHTML = `
+                        <span class="index-icon">${info.icon}</span>
+                        <span class="index-name">${info.name}</span>
+                        <span class="index-level">${index.level || '--'}</span>
+                    `;
+                    this.lifeIndexList.appendChild(item);
+                }
+            });
+        }
 
         this.lifeIndex.classList.remove('hidden');
     }
