@@ -180,6 +180,77 @@ class WeatherApp {
         }
     }
 
+    // 天气图标映射
+    getWeatherEmoji(iconCode) {
+        const emojiMap = {
+            // 晴
+            '100': '☀️',
+            '150': '🌙',
+            // 多云
+            '101': '⛅',
+            '102': '🌤️',
+            '103': '🌥️',
+            '153': '☁️',
+            // 阴
+            '104': '☁️',
+            // 阵雨
+            '300': '🌦️',
+            '301': '🌧️',
+            '302': '⛈️',
+            '303': '⛈️',
+            '304': '⛈️',
+            // 雷阵雨
+            '305': '🌩️',
+            '306': '⛈️',
+            '307': '⛈️',
+            '308': '⛈️',
+            '309': '🌧️',
+            '310': '🌧️',
+            '311': '🌧️',
+            '312': '🌧️',
+            '313': '🌧️',
+            '314': '🌧️',
+            '315': '🌧️',
+            '316': '🌧️',
+            '317': '🌧️',
+            '318': '🌧️',
+            // 雨
+            '350': '🌦️',
+            '351': '🌦️',
+            '399': '🌧️',
+            // 雪
+            '400': '❄️',
+            '401': '🌨️',
+            '402': '❄️',
+            '403': '❄️',
+            '404': '🌨️',
+            '405': '🌨️',
+            '406': '🌨️',
+            '407': '🌨️',
+            '408': '🌨️',
+            '409': '🌨️',
+            '410': '❄️',
+            '499': '❄️',
+            // 浮尘雾霾
+            '500': '🌫️',
+            '501': '🌫️',
+            '502': '🌫️',
+            '503': '🌫️',
+            '504': '🌫️',
+            '507': '🌪️',
+            '508': '🌪️',
+            '509': '🌫️',
+            '510': '🌫️',
+            '511': '🌫️',
+            '512': '🌫️',
+            '513': '🌫️',
+            '514': '🌫️',
+            '515': '🌫️',
+            '599': '🌫️'
+        };
+        return emojiMap[iconCode] || '🌤️';
+    }
+
     // 显示天气数据
     displayWeather(now, cityName, country) {
         document.getElementById('cityName').textContent = cityName + (country ? `, ${country}` : '');
@@ -190,13 +261,11 @@ class WeatherApp {
         document.getElementById('visibility').textContent = now.vis ? `${(now.vis / 1000).toFixed(1)} km` : '-';
         document.getElementById('feelsLike').textContent = `${now.feelsLike}°C`;
 
-        // 天气描述和图标
+        // 天气描述和图标（使用emoji，无需外部资源）
         document.getElementById('weatherDesc').textContent = now.text || '-';
-        const weatherIcon = document.getElementById('weatherIcon');
-        weatherIcon.src = `https://cdn.heweather.com/cond_icon/${now.icon}.png`;
-        weatherIcon.onerror = function() {
-            this.src = `https://dev.qweather.com/images/icons/${now.icon}.png`;
-        };
+        document.getElementById('weatherIcon').style.display = 'none'; // 隐藏原图片标签
+        // 直接在描述前显示emoji
+        document.getElementById('weatherDesc').innerHTML = `${this.getWeatherEmoji(now.icon)} ${now.text || '-'}`;
     }
 
     // 显示未来预报
@@ -212,7 +281,7 @@ class WeatherApp {
             item.className = 'forecast-item';
             item.innerHTML = `
                 <p class="date">${date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', weekday: 'short' })}</p>
-                <img class="icon" src="https://cdn.heweather.com/cond_icon/${day.iconDay}.png" alt="${day.textDay}" onerror="this.onerror=null;this.src='https://dev.qweather.com/images/icons/${day.iconDay}.png'">
+                <p class="icon-emoji">${this.getWeatherEmoji(day.iconDay)}</p>
                 <p class="temp-range">${day.tempMax}° / ${day.tempMin}°</p>
             `;
             forecastList.appendChild(item);
