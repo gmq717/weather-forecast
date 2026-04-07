@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>天气预报</title>
-    <link rel="stylesheet" href="style.css?v=2026040703">
+    <link rel="stylesheet" href="style.css?v=2026040706">
 </head>
 <body>
     <div class="container">
@@ -62,7 +62,7 @@
                     </div>
                     <div class="detail-item">
                         <span class="label">💨 风速</span>
-                        <span id="windSpeed" class="value">-- km/h</span>
+                        <span id="windSpeed" class="value">--</span>
                     </div>
                     <div class="detail-item">
                         <span class="label">👁 能见度</span>
@@ -71,6 +71,30 @@
                     <div class="detail-item">
                         <span class="label">🌡 体感温度</span>
                         <span id="feelsLike" class="value">--°C</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">🌤 气压</span>
+                        <span id="pressure" class="value">-- hPa</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">💧 露点</span>
+                        <span id="dew" class="value">--°C</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">🌧 降水量</span>
+                        <span id="precip" class="value">-- mm</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">☁️ 云量</span>
+                        <span id="cloud" class="value">--%</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">🌅 日出</span>
+                        <span id="sunrise" class="value">--:--</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">🌇 日落</span>
+                        <span id="sunset" class="value">--:--</span>
                     </div>
                 </div>
             </div>
@@ -137,6 +161,6 @@
         </footer>
     </div>
 
-    <script src="app.js?v=2026040703"></script>
+    <script src="app.js?v=2026040706"></script>
 </body>
 </html>

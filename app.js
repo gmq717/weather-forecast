@@ -185,7 +185,8 @@ class WeatherApp {
                 this.fetchForecast(lat, lon),
                 this.fetchAirQuality(lat, lon),
                 this.fetchWeatherWarning(lat, lon),
-                this.fetchLifeIndex(lat, lon)
+                this.fetchLifeIndex(lat, lon),
+                this.fetchAstronomy(lat, lon) // 新增日出日落数据
             ]);
 
             // 显示天气数据
@@ -200,6 +201,32 @@ class WeatherApp {
             console.error('获取天气时出错:', error);
             this.hideLoading();
             this.showError(error.message || '获取天气失败，请稍后重试');
+        }
+    }
+
+    // 获取日出日落数据
+    async fetchAstronomy(lat, lon) {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const url = `${QWEATHER_BASE_URL}/v7/astronomy/sun?location=${lon},${lat}&date=${today}&lang=zh`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-QW-Api-Key': QWEATHER_API_KEY,
+                    'Accept-Encoding': 'gzip, deflate'
+                }
+            });
+
+            if (!response.ok) return;
+
+            const data = await response.json();
+
+            if (data.code === '200' && data.sunrise && data.sunset) {
+                this.displayAstronomy(data.sunrise, data.sunset);
+            }
+        } catch (e) {
+            console.log('获取日出日落失败:', e);
         }
     }
 
@@ -297,7 +324,8 @@ class WeatherApp {
     // 获取生活指数
     async fetchLifeIndex(lat, lon) {
         try {
-            const url = `${QWEATHER_BASE_URL}/v7/indices/1d?type=1,2,3,5,6,9&location=${lon},${lat}&lang=zh`;
+            // 增加更多生活指数类型
+            const url = `${QWEATHER_BASE_URL}/v7/indices/1d?type=1,2,3,5,6,7,8,9,10,14,15,16&location=${lon},${lat}&lang=zh`;
             console.log('请求生活指数API:', url);
 
             const response = await fetch(url, {
@@ -406,16 +434,26 @@ class WeatherApp {
         document.getElementById('updateTime').textContent = `更新时间：${new Date().toLocaleString('zh-CN')}`;
         document.getElementById('temp').textContent = now.temp;
         document.getElementById('humidity').textContent = `${now.humidity}%`;
-        document.getElementById('windSpeed').textContent = `${now.windSpeed} km/h`;
+        document.getElementById('windSpeed').textContent = `${now.windSpeed} ${now.windDir || ''}`;
         // 和风天气返回的vis单位已经是公里，无需除以1000
         document.getElementById('visibility').textContent = now.vis ? `${now.vis} km` : '-';
         document.getElementById('feelsLike').textContent = `${now.feelsLike}°C`;
+        document.getElementById('pressure').textContent = now.pressure ? `${now.pressure} hPa` : '-';
+        document.getElementById('dew').textContent = now.dew ? `${now.dew}°C` : '-';
+        document.getElementById('precip').textContent = now.precip ? `${now.precip} mm` : '-';
+        document.getElementById('cloud').textContent = now.cloud ? `${now.cloud}%` : '-';
 
         // 天气描述和图标（使用emoji，无需外部资源）
         document.getElementById('weatherDesc').textContent = now.text || '-';
         document.getElementById('weatherIcon').style.display = 'none'; // 隐藏原图片标签
         // 直接在描述前显示emoji
         document.getElementById('weatherDesc').innerHTML = `${this.getWeatherEmoji(now.icon)} ${now.text || '-'}`;
+    }
+
+    // 显示日出日落数据
+    displayAstronomy(sunrise, sunset) {
+        document.getElementById('sunrise').textContent = sunrise ? sunrise.split('T')[1].substring(0, 5) : '--:--';
+        document.getElementById('sunset').textContent = sunset ? sunset.split('T')[1].substring(0, 5) : '--:--';
     }
 
     // 显示未来预报
@@ -506,12 +544,18 @@ class WeatherApp {
     // 显示生活指数
     displayLifeIndex(indices) {
         const indexMap = {
-            '1': { icon: '☀️', name: '运动' },
+            '1': { icon: '🏃', name: '运动' },
             '2': { icon: '🚗', name: '洗车' },
             '3': { icon: '👕', name: '穿衣' },
-            '5': { icon: '💄', name: '紫外线' },
+            '5': { icon: '☀️', name: '紫外线' },
             '6': { icon: '🤧', name: '感冒' },
-            '9': { icon: '🍃', name: '晾晒' }
+            '7': { icon: '☂️', name: '雨伞' },
+            '8': { icon: '💄', name: '化妆' },
+            '9': { icon: '🧺', name: '晾晒' },
+            '10': { icon: '🚴', name: '交通' },
+            '14': { icon: '💼', name: '办公' },
+            '15': { icon: '🌻', name: '赏花' },
+            '16': { icon: '🛫', name: '旅行' }
         };
 
         this.lifeIndexList.innerHTML = '';
@@ -537,7 +581,7 @@ class WeatherApp {
                     item.innerHTML = `
                         <span class="index-icon">${info.icon}</span>
                         <span class="index-name">${info.name}</span>
-                        <span class="index-level">${index.level || '--'}</span>
+                        <span class="index-level" title="${index.category || ''}">${index.level || '--'}</span>
                     `;
                     this.lifeIndexList.appendChild(item);
                 }
