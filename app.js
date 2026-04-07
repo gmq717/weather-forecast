@@ -24,6 +24,12 @@ class WeatherApp {
         this.weatherCard = document.getElementById('weatherCard');
         this.forecast = document.getElementById('forecast');
         this.forecastList = document.getElementById('forecastList');
+        this.weatherWarning = document.getElementById('weatherWarning');
+        this.warningTitle = document.getElementById('warningTitle');
+        this.warningContent = document.getElementById('warningContent');
+        this.airQuality = document.getElementById('airQuality');
+        this.lifeIndex = document.getElementById('lifeIndex');
+        this.lifeIndexList = document.getElementById('lifeIndexList');
     }
 
     // 绑定事件
@@ -174,8 +180,13 @@ class WeatherApp {
                 throw new Error(`获取天气失败: ${data.message || '未知错误'}`);
             }
 
-            // 获取预报数据
-            await this.fetchForecast(lat, lon);
+            // 并行获取所有扩展数据
+            await Promise.all([
+                this.fetchForecast(lat, lon),
+                this.fetchAirQuality(lat, lon),
+                this.fetchWeatherWarning(lat, lon),
+                this.fetchLifeIndex(lat, lon)
+            ]);
 
             // 显示天气数据
             this.displayWeather(data.now, cityName, country);
@@ -214,6 +225,86 @@ class WeatherApp {
             }
         } catch (e) {
             console.log('获取预报失败:', e);
+        }
+    }
+
+    // 获取空气质量
+    async fetchAirQuality(lat, lon) {
+        try {
+            const url = `${QWEATHER_BASE_URL}/v7/air/now?location=${lon},${lat}&lang=zh`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-QW-Api-Key': QWEATHER_API_KEY,
+                    'Accept-Encoding': 'gzip, deflate'
+                }
+            });
+
+            if (!response.ok) return;
+
+            const data = await response.json();
+
+            if (data.code === '200' && data.now) {
+                this.displayAirQuality(data.now);
+            }
+        } catch (e) {
+            console.log('获取空气质量失败:', e);
+            this.airQuality.classList.add('hidden');
+        }
+    }
+
+    // 获取天气预警
+    async fetchWeatherWarning(lat, lon) {
+        try {
+            const url = `${QWEATHER_BASE_URL}/v7/warning/now?location=${lon},${lat}&lang=zh`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-QW-Api-Key': QWEATHER_API_KEY,
+                    'Accept-Encoding': 'gzip, deflate'
+                }
+            });
+
+            if (!response.ok) return;
+
+            const data = await response.json();
+
+            if (data.code === '200' && data.warning && data.warning.length > 0) {
+                this.displayWeatherWarning(data.warning);
+            } else {
+                this.weatherWarning.classList.add('hidden');
+            }
+        } catch (e) {
+            console.log('获取天气预警失败:', e);
+            this.weatherWarning.classList.add('hidden');
+        }
+    }
+
+    // 获取生活指数
+    async fetchLifeIndex(lat, lon) {
+        try {
+            const url = `${QWEATHER_BASE_URL}/v7/indices/1d?type=1,2,3,5,6,9&location=${lon},${lat}&lang=zh`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-QW-Api-Key': QWEATHER_API_KEY,
+                    'Accept-Encoding': 'gzip, deflate'
+                }
+            });
+
+            if (!response.ok) return;
+
+            const data = await response.json();
+
+            if (data.code === '200' && data.daily && data.daily.length > 0) {
+                this.displayLifeIndex(data.daily[0]);
+            }
+        } catch (e) {
+            console.log('获取生活指数失败:', e);
+            this.lifeIndex.classList.add('hidden');
         }
     }
 
@@ -326,6 +417,89 @@ class WeatherApp {
         });
 
         this.forecast.classList.remove('hidden');
+    }
+
+    // 显示空气质量
+    displayAirQuality(aqiData) {
+        document.getElementById('aqi').textContent = aqiData.aqi;
+
+        // AQI等级映射
+        const aqiLevels = [
+            { min: 0, max: 50, level: '优', color: '#00e400' },
+            { min: 51, max: 100, level: '良', color: '#ffff00' },
+            { min: 101, max: 150, level: '轻度污染', color: '#ff7e00' },
+            { min: 151, max: 200, level: '中度污染', color: '#ff0000' },
+            { min: 201, max: 300, level: '重度污染', color: '#99004c' },
+            { min: 301, max: 500, level: '严重污染', color: '#7e0023' }
+        ];
+
+        const aqiValue = parseInt(aqiData.aqi);
+        const levelInfo = aqiLevels.find(level => aqiValue >= level.min && aqiValue <= level.max) ||
+                          { level: '未知', color: '#999' };
+
+        const aqiLevelElement = document.getElementById('aqiLevel');
+        aqiLevelElement.textContent = levelInfo.level;
+        aqiLevelElement.style.color = levelInfo.color;
+
+        document.getElementById('pm2p5').textContent = `${aqiData.pm2p5} μg/m³`;
+        document.getElementById('pm10').textContent = `${aqiData.pm10} μg/m³`;
+        document.getElementById('o3').textContent = `${aqiData.o3} μg/m³`;
+        document.getElementById('no2').textContent = `${aqiData.no2} μg/m³`;
+
+        this.airQuality.classList.remove('hidden');
+    }
+
+    // 显示天气预警
+    displayWeatherWarning(warnings) {
+        if (!warnings || warnings.length === 0) {
+            this.weatherWarning.classList.add('hidden');
+            return;
+        }
+
+        const warning = warnings[0]; // 显示第一个预警
+        this.warningTitle.textContent = `${warning.typeName} ${warning.level}预警`;
+        this.warningContent.textContent = warning.text;
+
+        // 预警等级颜色
+        const levelColors = {
+            '蓝色': '#1e88e5',
+            '黄色': '#fdd835',
+            '橙色': '#fb8c00',
+            '红色': '#e53935'
+        };
+
+        this.weatherWarning.style.borderLeftColor = levelColors[warning.level] || '#999';
+        this.weatherWarning.classList.remove('hidden');
+    }
+
+    // 显示生活指数
+    displayLifeIndex(indices) {
+        const indexMap = {
+            '1': { icon: '☀️', name: '运动' },
+            '2': { icon: '🚗', name: '洗车' },
+            '3': { icon: '👕', name: '穿衣' },
+            '5': { icon: '💄', name: '紫外线' },
+            '6': { icon: '🤧', name: '感冒' },
+            '9': { icon: '🍃', name: '晾晒' }
+        };
+
+        this.lifeIndexList.innerHTML = '';
+
+        indices.indices.forEach(index => {
+            const info = indexMap[index.type];
+            if (info) {
+                const item = document.createElement('div');
+                item.className = 'life-index-item';
+                item.innerHTML = `
+                    <span class="index-icon">${info.icon}</span>
+                    <span class="index-name">${info.name}</span>
+                    <span class="index-level">${index.level}</span>
+                `;
+                this.lifeIndexList.appendChild(item);
+            }
+        });
+
+        this.lifeIndex.classList.remove('hidden');
     }
 
     // 根据天气图标更新背景色

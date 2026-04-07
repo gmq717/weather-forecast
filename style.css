@@ -249,6 +249,131 @@ main {
     font-size: 1.1rem;
 }
 
+/* 天气预警 */
+.warning {
+    background: #fff3cd;
+    border-left: 5px solid #ffc107;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.warning-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.warning-icon {
+    font-size: 1.5rem;
+}
+
+.warning-header h3 {
+    margin: 0;
+    color: #856404;
+}
+
+.warning-content {
+    color: #856404;
+    line-height: 1.5;
+}
+
+/* 空气质量 */
+.air-quality {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.air-quality h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.air-quality-main {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+.aqi-value {
+    text-align: center;
+}
+
+.aqi-value #aqi {
+    font-size: 3rem;
+    font-weight: bold;
+    display: block;
+}
+
+.aqi-level {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.aqi-details {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.aqi-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+}
+
+/* 生活指数 */
+.life-index {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.life-index h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.life-index-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+}
+
+.life-index-item {
+    text-align: center;
+    padding: 15px 10px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.index-icon {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.index-name {
+    display: block;
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 3px;
+}
+
+.index-level {
+    display: block;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
 /* 天气预报 */
 .forecast {
     margin-top: 30px;
@@ -330,6 +455,24 @@ footer {
 
     .temperature {
         font-size: 3rem;
+    }
+
+    .air-quality-main {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .aqi-details {
+        width: 100%;
+    }
+
+    .life-index-list {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .forecast-list {
+        grid-template-columns: 1fr;
+        gap: 15px;
     }
 
     .weather-main {

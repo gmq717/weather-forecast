@@ -75,6 +75,54 @@
                 </div>
             </div>
 
+            <!-- 天气预警 -->
+            <div id="weatherWarning" class="warning hidden">
+                <div class="warning-header">
+                    <span class="warning-icon">⚠️</span>
+                    <h3 id="warningTitle">天气预警</h3>
+                </div>
+                <div id="warningContent" class="warning-content">
+                    <!-- 预警内容将通过JS动态生成 -->
+                </div>
+            </div>
+
+            <!-- 空气质量 -->
+            <div id="airQuality" class="air-quality hidden">
+                <h3>空气质量</h3>
+                <div class="air-quality-main">
+                    <div class="aqi-value">
+                        <span id="aqi">--</span>
+                        <span id="aqiLevel" class="aqi-level">--</span>
+                    </div>
+                    <div class="aqi-details">
+                        <div class="aqi-item">
+                            <span class="label">PM2.5</span>
+                            <span id="pm2p5">-- μg/m³</span>
+                        </div>
+                        <div class="aqi-item">
+                            <span class="label">PM10</span>
+                            <span id="pm10">-- μg/m³</span>
+                        </div>
+                        <div class="aqi-item">
+                            <span class="label">O₃</span>
+                            <span id="o3">-- μg/m³</span>
+                        </div>
+                        <div class="aqi-item">
+                            <span class="label">NO₂</span>
+                            <span id="no2">-- μg/m³</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 生活指数 -->
+            <div id="lifeIndex" class="life-index hidden">
+                <h3>生活指数</h3>
+                <div id="lifeIndexList" class="life-index-list">
+                    <!-- 生活指数将通过JS动态生成 -->
+                </div>
+            </div>
+
             <!-- 未来预报 -->
             <div id="forecast" class="forecast hidden">
                 <h3>未来3天预报</h3>
