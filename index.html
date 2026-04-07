@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天气预报</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌤 天气预报</h1>
+            <p class="subtitle">自动定位，实时天气</p>
+        </header>
+
+        <main>
+            <!-- 定位按钮 -->
+            <div class="location-section">
+                <button id="locateBtn" class="btn-primary">
+                    📍 获取当前位置天气
+                </button>
+                <p class="or-divider">或</p>
+                <div class="city-input-group">
+                    <input type="text" id="cityInput" placeholder="输入城市名称（如：北京）">
+                    <button id="searchBtn" class="btn-secondary">查询</button>
+                </div>
+            </div>
+
+            <!-- 加载状态 -->
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>正在获取天气信息...</p>
+            </div>
+
+            <!-- 错误提示 -->
+            <div id="error" class="error hidden">
+                <p id="errorMessage"></p>
+            </div>
+
+            <!-- 天气信息卡片 -->
+            <div id="weatherCard" class="weather-card hidden">
+                <div class="weather-header">
+                    <h2 id="cityName">--</h2>
+                    <p id="updateTime">更新时间：--</p>
+                </div>
+
+                <div class="weather-main">
+                    <div class="temperature">
+                        <span id="temp">--</span>
+                        <span class="unit">°C</span>
+                    </div>
+                    <div class="weather-icon">
+                        <img id="weatherIcon" src="" alt="天气图标">
+                        <p id="weatherDesc">--</p>
+                    </div>
+                </div>
+
+                <div class="weather-details">
+                    <div class="detail-item">
+                        <span class="label">💧 湿度</span>
+                        <span id="humidity" class="value">--%</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">💨 风速</span>
+                        <span id="windSpeed" class="value">-- km/h</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">👁 能见度</span>
+                        <span id="visibility" class="value">-- km</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">🌡 体感温度</span>
+                        <span id="feelsLike" class="value">--°C</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 未来预报 -->
+            <div id="forecast" class="forecast hidden">
+                <h3>未来3天预报</h3>
+                <div id="forecastList" class="forecast-list">
+                    <!-- 预报项目将通过JS动态生成 -->
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2024 天气预报 | 数据由 Open-Meteo 提供</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
