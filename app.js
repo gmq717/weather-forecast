@@ -61,6 +61,31 @@ class WeatherApp {
         }
     }
 
+    // 通过经纬度获取城市信息
+    async getCityByCoords(lat, lon) {
+        try {
+            const url = `${QWEATHER_BASE_URL}/geo/v2/city/lookup?location=${lon},${lat}&lang=zh&number=1`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-QW-Api-Key': QWEATHER_API_KEY,
+                    'Accept-Encoding': 'gzip, deflate'
+                }
+            });
+
+            if (!response.ok) return null;
+
+            const data = await response.json();
+            if (data.code === '200' && data.location && data.location.length > 0) {
+                return data.location[0];
+            }
+            return null;
+        } catch (e) {
+            console.log('经纬度反查城市失败:', e);
+            return null;
+        }
+    }
+
     // 获取当前位置
     getLocation() {
         this.showLoading();
@@ -72,9 +97,16 @@ class WeatherApp {
         }
 
         navigator.geolocation.getCurrentPosition(
-            (position) => {
+            async (position) => {
                 const { latitude, longitude } = position.coords;
-                this.fetchWeatherByCoords(latitude, longitude, '当前位置');
+                // 通过经纬度反查城市信息，获取城市ID
+                const cityInfo = await this.getCityByCoords(latitude, longitude);
+                if (cityInfo) {
+                    const displayName = cityInfo.adm1 && cityInfo.adm1 !== cityInfo.name ? `${cityInfo.adm1} ${cityInfo.name}` : cityInfo.name;
+                    await this.fetchWeatherByCoords(latitude, longitude, displayName, cityInfo.country, cityInfo.id);
+                } else {
+                    await this.fetchWeatherByCoords(latitude, longitude, '当前位置');
+                }
             },
             (error) => {
                 this.hideLoading();
