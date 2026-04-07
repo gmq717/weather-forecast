@@ -192,7 +192,11 @@ class WeatherApp {
 
         // 天气描述和图标
         document.getElementById('weatherDesc').textContent = now.text || '-';
-        document.getElementById('weatherIcon').src = `https://a.hecdn.net/img/common/icon/${now.icon}.png`;
+        const weatherIcon = document.getElementById('weatherIcon');
+        weatherIcon.src = `https://cdn.heweather.com/cond_icon/${now.icon}.png`;
+        weatherIcon.onerror = function() {
+            this.src = `https://dev.qweather.com/images/icons/${now.icon}.png`;
+        };
     }
 
     // 显示未来预报
@@ -208,7 +212,7 @@ class WeatherApp {
             item.className = 'forecast-item';
             item.innerHTML = `
                 <p class="date">${date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', weekday: 'short' })}</p>
-                <img class="icon" src="https://a.hecdn.net/img/common/icon/${day.iconDay}.png" alt="${day.textDay}">
+                <img class="icon" src="https://cdn.heweather.com/cond_icon/${day.iconDay}.png" alt="${day.textDay}" onerror="this.onerror=null;this.src='https://dev.qweather.com/images/icons/${day.iconDay}.png'">
                 <p class="temp-range">${day.tempMax}° / ${day.tempMin}°</p>
             `;
             forecastList.appendChild(item);
