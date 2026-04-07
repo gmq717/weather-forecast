@@ -9,6 +9,7 @@ class WeatherApp {
     constructor() {
         this.initElements();
         this.bindEvents();
+        this.setCurrentYear(); // 设置当前年份
         this.autoLocate(); // 页面加载自动定位
     }
 
@@ -32,6 +33,11 @@ class WeatherApp {
         this.cityInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.searchCity();
         });
+    }
+
+    // 设置当前年份
+    setCurrentYear() {
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
     }
 
     // 页面加载自动定位（静默失败）
