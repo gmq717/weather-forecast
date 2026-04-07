@@ -231,7 +231,8 @@ class WeatherApp {
     // 获取空气质量
     async fetchAirQuality(lat, lon) {
         try {
-            const url = `${QWEATHER_BASE_URL}/v7/air/now?location=${lon},${lat}&lang=zh`;
+            // 修正API路径：空气质量需要纬度在前，经度在后，路径参数格式
+            const url = `${QWEATHER_BASE_URL}/airquality/v1/current/${lat}/${lon}`;
             console.log('请求空气质量API:', url);
 
             const response = await fetch(url, {
@@ -266,7 +267,9 @@ class WeatherApp {
     // 获取天气预警
     async fetchWeatherWarning(lat, lon) {
         try {
-            const url = `${QWEATHER_BASE_URL}/v7/warning/now?location=${lon},${lat}&lang=zh`;
+            // 修正API路径：天气预警需要纬度在前，经度在后，路径参数格式
+            const url = `${QWEATHER_BASE_URL}/weatheralert/v1/current/${lat}/${lon}`;
+            console.log('请求天气预警API:', url);
 
             const response = await fetch(url, {
                 method: 'GET',
