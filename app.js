@@ -132,11 +132,15 @@ class WeatherApp {
     // 根据坐标获取城市名
     async getCityNameByCoords(lat, lon) {
         try {
+            // 使用 Open-Meteo 的反向地理编码 API
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&accept-language=zh`
+                `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=zh`
             );
             const data = await response.json();
-            return data.address.city || data.address.town || data.address.county || '当前位置';
+            if (data.results && data.results.length > 0) {
+                return data.results[0].name || '当前位置';
+            }
+            return '当前位置';
         } catch {
             return '当前位置';
         }
