@@ -325,7 +325,10 @@ main {
 .aqi-item {
     display: flex;
     justify-content: space-between;
-    padding: 5px 0;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 5px;
 }
 
 /* 生活指数 */
@@ -414,6 +417,12 @@ main {
 .forecast-item .icon-emoji {
     font-size: 2.5rem;
     margin: 10px 0;
+}
+
+.forecast-item .weather-desc {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 5px 0;
 }
 
 .forecast-item .temp-range {

@@ -137,11 +137,11 @@ class WeatherApp {
 
             // 获取第一个匹配的城市
             const location = data.location[0];
-            const { lat, lon, name, adm1, country } = location;
+            const { id, lat, lon, name, adm1, country } = location;
             const displayName = adm1 && adm1 !== name ? `${adm1} ${name}` : name;
 
             // 获取天气数据
-            await this.fetchWeatherByCoords(parseFloat(lat), parseFloat(lon), displayName, country);
+            await this.fetchWeatherByCoords(parseFloat(lat), parseFloat(lon), displayName, country, id);
 
             // 搜索成功后清空输入框并失焦
             this.cityInput.value = '';
@@ -155,7 +155,7 @@ class WeatherApp {
     }
 
     // 根据坐标获取天气
-    async fetchWeatherByCoords(lat, lon, cityName, country = '') {
+    async fetchWeatherByCoords(lat, lon, cityName, country = '', cityId = '') {
         try {
             // 使用和风天气实时天气 API
             const url = `${QWEATHER_BASE_URL}/v7/weather/now?location=${lon},${lat}&lang=zh`;
@@ -183,7 +183,7 @@ class WeatherApp {
                 this.fetchForecast(lat, lon),
                 this.fetchAirQuality(lat, lon),
                 this.fetchWeatherWarning(lat, lon),
-                this.fetchAstronomy(lat, lon) // 日出日落数据
+                this.fetchAstronomy(cityId) // 日出日落数据，使用城市ID
             ]);
 
             // 显示天气数据
@@ -295,10 +295,17 @@ class WeatherApp {
     }
 
     // 获取日出日落数据
-    async fetchAstronomy(lat, lon) {
+    async fetchAstronomy(cityId) {
         try {
-            const today = new Date().toISOString().split('T')[0];
-            const url = `${QWEATHER_BASE_URL}/v7/astronomy/sun?location=${lon},${lat}&date=${today}&lang=zh`;
+            // 如果没有城市ID，不请求日出日落数据
+            if (!cityId) {
+                this.displayAstronomy(null, null);
+                return;
+            }
+            // 获取当前日期，格式为YYYYMMDD
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+            const url = `${QWEATHER_BASE_URL}/v7/astronomy/sun?location=${cityId}&date=${dateStr}&lang=zh`;
             console.log('请求日出日落API:', url);
 
             const response = await fetch(url, {
@@ -450,6 +457,7 @@ class WeatherApp {
             item.innerHTML = `
                 <p class="date">${date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', weekday: 'short' })}</p>
                 <p class="icon-emoji">${this.getWeatherEmoji(day.iconDay)}</p>
+                <p class="weather-desc">${day.textDay}</p>
                 <p class="temp-range">${day.tempMax}° / ${day.tempMin}°</p>
             `;
             forecastList.appendChild(item);
