@@ -28,8 +28,6 @@ class WeatherApp {
         this.warningTitle = document.getElementById('warningTitle');
         this.warningContent = document.getElementById('warningContent');
         this.airQuality = document.getElementById('airQuality');
-        this.lifeIndex = document.getElementById('lifeIndex');
-        this.lifeIndexList = document.getElementById('lifeIndexList');
     }
 
     // 绑定事件
@@ -185,8 +183,7 @@ class WeatherApp {
                 this.fetchForecast(lat, lon),
                 this.fetchAirQuality(lat, lon),
                 this.fetchWeatherWarning(lat, lon),
-                this.fetchLifeIndex(lat, lon),
-                this.fetchAstronomy(lat, lon) // 新增日出日落数据
+                this.fetchAstronomy(lat, lon) // 日出日落数据
             ]);
 
             // 显示天气数据
@@ -204,31 +201,6 @@ class WeatherApp {
         }
     }
 
-    // 获取日出日落数据
-    async fetchAstronomy(lat, lon) {
-        try {
-            const today = new Date().toISOString().split('T')[0];
-            const url = `${QWEATHER_BASE_URL}/v7/astronomy/sun?location=${lon},${lat}&date=${today}&lang=zh`;
-
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'X-QW-Api-Key': QWEATHER_API_KEY,
-                    'Accept-Encoding': 'gzip, deflate'
-                }
-            });
-
-            if (!response.ok) return;
-
-            const data = await response.json();
-
-            if (data.code === '200' && data.sunrise && data.sunset) {
-                this.displayAstronomy(data.sunrise, data.sunset);
-            }
-        } catch (e) {
-            console.log('获取日出日落失败:', e);
-        }
-    }
 
     // 获取天气预报
     async fetchForecast(lat, lon) {
@@ -321,12 +293,12 @@ class WeatherApp {
         }
     }
 
-    // 获取生活指数
-    async fetchLifeIndex(lat, lon) {
+    // 获取日出日落数据
+    async fetchAstronomy(lat, lon) {
         try {
-            // 增加更多生活指数类型
-            const url = `${QWEATHER_BASE_URL}/v7/indices/1d?type=1,2,3,5,6,7,8,9,10,14,15,16&location=${lon},${lat}&lang=zh`;
-            console.log('请求生活指数API:', url);
+            const today = new Date().toISOString().split('T')[0];
+            const url = `${QWEATHER_BASE_URL}/v7/astronomy/sun?location=${lon},${lat}&date=${today}&lang=zh`;
+            console.log('请求日出日落API:', url);
 
             const response = await fetch(url, {
                 method: 'GET',
@@ -337,25 +309,32 @@ class WeatherApp {
             });
 
             if (!response.ok) {
-                console.log('生活指数API响应错误:', response.status);
-                this.displayLifeIndex(null);
+                console.log('日出日落API响应错误:', response.status);
+                this.displayAstronomy(null, null);
                 return;
             }
 
             const data = await response.json();
-            console.log('生活指数返回数据:', data);
+            console.log('日出日落返回数据:', data);
 
-            if (data.code === '200' && data.daily && data.daily.length > 0) {
-                this.displayLifeIndex(data.daily[0]);
+            if (data.code === '200' && data.sunrise && data.sunset) {
+                this.displayAstronomy(data.sunrise, data.sunset);
             } else {
-                console.log('生活指数数据为空或返回错误:', data.code);
-                this.displayLifeIndex(null);
+                console.log('日出日落数据为空或返回错误:', data.code);
+                this.displayAstronomy(null, null);
             }
         } catch (e) {
-            console.log('获取生活指数失败:', e);
-            this.displayLifeIndex(null);
+            console.log('获取日出日落失败:', e);
+            this.displayAstronomy(null, null);
         }
     }
+
+    // 显示日出日落数据
+    displayAstronomy(sunrise, sunset) {
+        document.getElementById('sunrise').textContent = sunrise ? sunrise.split('T')[1].substring(0, 5) : '--:--';
+        document.getElementById('sunset').textContent = sunset ? sunset.split('T')[1].substring(0, 5) : '--:--';
+    }
+
 
     // 天气图标映射
     getWeatherEmoji(iconCode) {
@@ -541,55 +520,6 @@ class WeatherApp {
         this.weatherWarning.classList.remove('hidden');
     }
 
-    // 显示生活指数
-    displayLifeIndex(indices) {
-        const indexMap = {
-            '1': { icon: '🏃', name: '运动' },
-            '2': { icon: '🚗', name: '洗车' },
-            '3': { icon: '👕', name: '穿衣' },
-            '5': { icon: '☀️', name: '紫外线' },
-            '6': { icon: '🤧', name: '感冒' },
-            '7': { icon: '☂️', name: '雨伞' },
-            '8': { icon: '💄', name: '化妆' },
-            '9': { icon: '🧺', name: '晾晒' },
-            '10': { icon: '🚴', name: '交通' },
-            '14': { icon: '💼', name: '办公' },
-            '15': { icon: '🌻', name: '赏花' },
-            '16': { icon: '🛫', name: '旅行' }
-        };
-
-        this.lifeIndexList.innerHTML = '';
-
-        if (!indices || !indices.indices) {
-            // 显示暂无数据
-            Object.values(indexMap).forEach(info => {
-                const item = document.createElement('div');
-                item.className = 'life-index-item';
-                item.innerHTML = `
-                    <span class="index-icon">${info.icon}</span>
-                    <span class="index-name">${info.name}</span>
-                    <span class="index-level" style="color:#999">--</span>
-                `;
-                this.lifeIndexList.appendChild(item);
-            });
-        } else {
-            indices.indices.forEach(index => {
-                const info = indexMap[index.type];
-                if (info) {
-                    const item = document.createElement('div');
-                    item.className = 'life-index-item';
-                    item.innerHTML = `
-                        <span class="index-icon">${info.icon}</span>
-                        <span class="index-name">${info.name}</span>
-                        <span class="index-level" title="${index.category || ''}">${index.level || '--'}</span>
-                    `;
-                    this.lifeIndexList.appendChild(item);
-                }
-            });
-        }
-
-        this.lifeIndex.classList.remove('hidden');
-    }
 
     // 根据天气图标更新背景色
     updateBackground(iconCode) {
