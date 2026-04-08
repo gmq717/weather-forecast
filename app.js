@@ -237,7 +237,7 @@ class WeatherApp {
     // 获取天气预报
     async fetchForecast(lat, lon) {
         try {
-            const url = `${QWEATHER_BASE_URL}/v7/weather/3d?location=${lon},${lat}&lang=zh`;
+            const url = `${QWEATHER_BASE_URL}/v7/weather/7d?location=${lon},${lat}&lang=zh`;
 
             const response = await fetch(url, {
                 method: 'GET',
