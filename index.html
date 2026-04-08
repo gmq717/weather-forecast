@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>天气预报</title>
-    <link rel="stylesheet" href="style.css?v=2026040711">
+    <link rel="stylesheet" href="style.css?v=2026040801">
 </head>
 <body>
     <div class="container">
@@ -40,7 +40,12 @@
             <!-- 天气信息卡片 -->
             <div id="weatherCard" class="weather-card hidden">
                 <div class="weather-header">
-                    <h2 id="cityName">--</h2>
+                    <div id="locationDisplay" class="location-display">
+                        <span id="countryName" class="location-part"></span>
+                        <span id="adm1Name" class="location-part"></span>
+                        <span id="adm2Name" class="location-part"></span>
+                        <span id="cityName" class="location-part">--</span>
+                    </div>
                     <p id="updateTime">更新时间：--</p>
                 </div>
 
@@ -162,6 +167,6 @@
         </footer>
     </div>
 
-    <script src="app.js?v=2026040711"></script>
+    <script src="app.js?v=2026040801"></script>
 </body>
 </html>

@@ -102,10 +102,9 @@ class WeatherApp {
                 // 通过经纬度反查城市信息，获取城市ID
                 const cityInfo = await this.getCityByCoords(latitude, longitude);
                 if (cityInfo) {
-                    const displayName = cityInfo.adm1 && cityInfo.adm1 !== cityInfo.name ? `${cityInfo.adm1} ${cityInfo.name}` : cityInfo.name;
-                    await this.fetchWeatherByCoords(latitude, longitude, displayName, cityInfo.country, cityInfo.id);
+                    await this.fetchWeatherByCoords(latitude, longitude, cityInfo);
                 } else {
-                    await this.fetchWeatherByCoords(latitude, longitude, '当前位置');
+                    await this.fetchWeatherByCoords(latitude, longitude, { name: '当前位置' });
                 }
             },
             (error) => {
@@ -169,11 +168,10 @@ class WeatherApp {
 
             // 获取第一个匹配的城市
             const location = data.location[0];
-            const { id, lat, lon, name, adm1, country } = location;
-            const displayName = adm1 && adm1 !== name ? `${adm1} ${name}` : name;
+            const { id, lat, lon } = location;
 
             // 获取天气数据
-            await this.fetchWeatherByCoords(parseFloat(lat), parseFloat(lon), displayName, country, id);
+            await this.fetchWeatherByCoords(parseFloat(lat), parseFloat(lon), location);
 
             // 搜索成功后清空输入框并失焦
             this.cityInput.value = '';
@@ -187,7 +185,7 @@ class WeatherApp {
     }
 
     // 根据坐标获取天气
-    async fetchWeatherByCoords(lat, lon, cityName, country = '', cityId = '') {
+    async fetchWeatherByCoords(lat, lon, location) {
         try {
             // 使用和风天气实时天气 API
             const url = `${QWEATHER_BASE_URL}/v7/weather/now?location=${lon},${lat}&lang=zh`;
@@ -215,11 +213,11 @@ class WeatherApp {
                 this.fetchForecast(lat, lon),
                 this.fetchAirQuality(lat, lon),
                 this.fetchWeatherWarning(lat, lon),
-                this.fetchAstronomy(cityId) // 日出日落数据，使用城市ID
+                this.fetchAstronomy(location.id) // 日出日落数据，使用城市ID
             ]);
 
             // 显示天气数据
-            this.displayWeather(data.now, cityName, country);
+            this.displayWeather(data.now, location);
             // 设置动态背景色
             this.updateBackground(data.now.icon);
 
@@ -448,8 +446,47 @@ class WeatherApp {
     }
 
     // 显示天气数据
-    displayWeather(now, cityName, country) {
-        document.getElementById('cityName').textContent = cityName + (country ? `, ${country}` : '');
+    displayWeather(now, location) {
+        // 清空所有位置元素
+        document.getElementById('countryName').textContent = '';
+        document.getElementById('adm1Name').textContent = '';
+        document.getElementById('adm2Name').textContent = '';
+        document.getElementById('cityName').textContent = '';
+
+        // 按层级显示位置信息，避免重复
+        const parts = [];
+
+        if (location.country) {
+            const el = document.getElementById('countryName');
+            el.textContent = location.country;
+            el.classList.add('has-content');
+            parts.push(location.country);
+        }
+
+        if (location.adm1 && !parts.includes(location.adm1)) {
+            const el = document.getElementById('adm1Name');
+            el.textContent = location.adm1;
+            el.classList.add('has-content');
+            parts.push(location.adm1);
+        }
+
+        if (location.adm2 && !parts.includes(location.adm2)) {
+            const el = document.getElementById('adm2Name');
+            el.textContent = location.adm2;
+            el.classList.add('has-content');
+            parts.push(location.adm2);
+        }
+
+        if (location.name && !parts.includes(location.name)) {
+            const el = document.getElementById('cityName');
+            el.textContent = location.name;
+            el.classList.add('has-content');
+        } else if (location.name) {
+            // 如果城市名已显示在上层，至少确保cityName有内容
+            document.getElementById('cityName').textContent = location.name;
+            document.getElementById('cityName').classList.add('has-content');
+        }
+
         document.getElementById('updateTime').textContent = `更新时间：${new Date().toLocaleString('zh-CN')}`;
         document.getElementById('temp').textContent = now.temp;
         document.getElementById('humidity').textContent = `${now.humidity}%`;

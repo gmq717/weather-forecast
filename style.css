@@ -178,9 +178,32 @@ main {
     margin-bottom: 20px;
 }
 
-#cityName {
-    font-size: 1.7rem;
+.location-display {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px 10px;
     margin-bottom: 5px;
+}
+
+.location-part {
+    font-size: 1.1rem;
+    opacity: 0;
+    display: none;
+}
+
+.location-part.has-content {
+    opacity: 1;
+    display: inline;
+}
+
+.location-part:last-child.has-content {
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+#cityName {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -479,6 +502,19 @@ footer {
 
     .city-input-group {
         flex-direction: column;
+    }
+
+    .location-display {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .location-part {
+        font-size: 0.95rem;
+    }
+
+    .location-part:last-child.has-content {
+        font-size: 1.15rem;
     }
 
     .temperature {
