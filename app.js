@@ -480,8 +480,10 @@ class WeatherApp {
         const forecastList = document.getElementById('forecastList');
         forecastList.innerHTML = '';
 
-        // 显示3天预报
-        daily.forEach((day) => {
+        // 跳过第一天（今天），显示后3天（明天、后天、大后天）
+        const futureDays = daily.slice(1);
+
+        futureDays.forEach((day) => {
             const date = new Date(day.fxDate);
 
             const item = document.createElement('div');
