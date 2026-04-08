@@ -10,7 +10,7 @@ class WeatherApp {
         this.initElements();
         this.bindEvents();
         this.setCurrentYear(); // 设置当前年份
-        this.autoLocate(); // 页面加载自动定位
+        // 移除页面加载自动定位，由用户手动触发
     }
 
     // 初始化DOM元素
